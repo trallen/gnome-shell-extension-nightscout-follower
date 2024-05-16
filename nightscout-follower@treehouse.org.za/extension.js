@@ -48,6 +48,13 @@ export default class NightscoutExtension extends Extension {
         //    () => this.openPreferences());
 
         Main.panel.addToStatusArea(this.uuid, this._indicator);
+
+        this._dismissUp = -1;
+        this._dismissDown = -1;
+        this._dismissHigh = -1;
+        this._dismissLow = -1;
+        this._dismissMissing = -1;
+
         this._update();
         this._timeout = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 60, () => {
             this._update();
@@ -94,7 +101,17 @@ export default class NightscoutExtension extends Extension {
                 return;
             }
 
+            let now = Date.now();
+
             let units = this._settings.get_string('units');
+
+            // These should probably be settings
+            let deltaUp = 20;
+            let deltaDown = -20;
+            let minHigh = 180;
+            let maxLow = 80;
+            let maxElapsedSecs = 600;
+            let warnEverySecs = 10 * 60;
 
             let glucoseValue = entry.sgv;
             let directionValue = entry.direction;
@@ -110,48 +127,72 @@ export default class NightscoutExtension extends Extension {
                 displayDelta = displayDelta.toFixed(2);
             }
 
-            let elapsedSec = Math.floor((Date.now() - date) / 1000);
-            let elapsedMin = Math.floor(elapsedSec / 60);
+            let elapsedSecs = Math.floor((now - date) / 1000);
+            let elapsedMins = Math.floor(elapsedSecs / 60);
 
             let arrow = this._fromNameToArrowCharacter(directionValue);
             let text = `${displayGlucoseValue} ${arrow}`;
 
-            if (elapsedSec >= 600) {
+            if (elapsedSecs >= maxElapsedSecs) {
                 this._label.style_class = 'expired-data';
-                this._notify({
-                    title: _('Missing readings'),
-                    body: _('There have been no new readings since %d minutes ago'.format(elapsedMin)),
-                });
+                // only warn every warnEverySecs
+                if (this._dismissMissing < 0 || Math.floor((now - this._dismissMissing) / 1000) > warnEverySecs ) {
+                    this._notify({
+                        title: _('Missing readings'),
+                        body: _('There have been no new readings since %d minutes ago'.format(elapsedMins)),
+                    });
+                    this._dismissMissing = now;
+                }
             } else {
                 this._label.style_class = 'fresh-data';
             }
 
-            if (glucoseValue < 80) {
+            if (glucoseValue < maxLow) {
                 this._label.style_class = 'low-glucose';
-                this._notify({
-                    title: _('Blood glucose is low!'),
-                    body: _('Your glucose is now %d %s'.format(displayGlucoseValue, units)),
-                });
-            } else if (glucoseValue > 180) {
+                // only warn every warnEverySecs
+                if (this._dismissLow < 0 || Math.floor((now - this._dismissLow) / 1000) > warnEverySecs ) {
+                    this._notify({
+                        title: _('Blood glucose is low!'),
+                        body: _('Your glucose is now %f %s'.format(displayGlucoseValue, units)),
+                    });
+                    this._dismissLow = now;
+                }
+            } else if (glucoseValue > minHigh) {
                 this._label.style_class = 'high-glucose';
-                this._notify({
-                    title: _('Blood glucose is high!'),
-                    body: _('Your glucose is now %d %s'.format(displayGlucoseValue, units)),
-                });
+                // only warn every warnEverySecs
+                if (this._dismissHigh < 0 || Math.floor((now - this._dismissHigh) / 1000) > warnEverySecs ) {
+                    this._notify({
+                        title: _('Blood glucose is high!'),
+                        body: _('Your glucose is now %f %s'.format(displayGlucoseValue, units)),
+                    });
+                    this._dismissHigh = now;
+                }
             } else {
                 this._label.style_class = 'fresh-data';
             }
 
-            if (delta >= 10) {
-                this._notify({
-                    title: _('Blood glucose rising quickly'),
-                    body: _('Your glucose has risen %d %s since the last reading'.format(displayDelta, units)),
-                });
-            } else if (delta <= -10) {
-                this._notify({
-                    title: _('Blood glucose falling quickly'),
-                    body: _('Your glucose has fallen %d %s since the last reading'.format(displayDelta, units)),
-                });
+            if (delta >= deltaUp) {
+                console.log("delta: ", delta);
+                // only warn every warnEverySecs
+                if (this._dismissUp < 0 || Math.floor((now - this._dismissUp) / 1000) > warnEverySecs ) {
+                    this._notify({
+                        title: _('Blood glucose rising quickly'),
+                        body: _('Your glucose has risen %f %s since the last reading'.format(displayDelta, units)),
+                    });
+                    this._dismissUp = now;
+                }
+            } else if (delta <= deltaDown) {
+                console.log("delta: ", delta);
+                console.log("displayDelta: ", displayDelta);
+                console.log("deltaDown: ", deltaDown);
+                // only warn every warnEverySecs
+                if (this._dismissDown < 0 || Math.floor((now - this._dismissDown) / 1000) > warnEverySecs ) {
+                    this._notify({
+                        title: _('Blood glucose falling quickly'),
+                        body: _('Your glucose has fallen %f %s since the last reading'.format(displayDelta, units)),
+                    });
+                    this._dismissDown = now;
+                }
             }
 
             this._label.set_text(text);
@@ -202,7 +243,7 @@ export default class NightscoutExtension extends Extension {
                 this._notify({
                     title: _('Nightscout Extension'),
                     body: _('Unable to retrieve data: authorization failed'),
-                    callback: () => { this.openPreferences() },
+                    activate_callback: () => { this.openPreferences() },
                 });
             } else {
                 Main.notify('Nightscout Extension', _('Unable to retrieve data: please check your internet connection'));
@@ -210,7 +251,7 @@ export default class NightscoutExtension extends Extension {
         });
     };
 
-    _notify({title, body, callback}) {
+    _notify({title, body, activated_callback, destroy_callback}) {
         const notification = new MessageTray.Notification({
             source: this._systemSource,
             title: title,
@@ -220,9 +261,14 @@ export default class NightscoutExtension extends Extension {
             gicon: this._getIcon("nightscout-icon"),
             urgency: MessageTray.Urgency.NORMAL,
         });
-        if (typeof(callback) === 'function') {
-            notification.connect('activated', _notification => {
-                callback();
+        if (typeof(activate_callback) === 'function') {
+            notification.connect('activated', (_notification, reason) => {
+                activate_callback(_notification, reason);
+            });
+        }
+        if (typeof(destroy_callback) === 'function') {
+            notification.connect('destroy', (_notification, reason) => {
+                destroy_callback(_notification, reason);
             });
         }
         this._systemSource.addNotification(notification);
