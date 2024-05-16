@@ -1,4 +1,4 @@
-# Nightscout for GNOME Shell
+# ![nightscout-icon](nightscout-follower@treehouse.org.za/icons/nightscout-icon.svg) Nightscout for GNOME Shell
 This extension integrates Nightscout into GNOME Shell.
 
 ## Features
