@@ -8,6 +8,7 @@ all: build install
 build:
 	rm -f $(BUNDLE_PATH)
 	cd $(EXTENSION_DIR); \
+	glib-compile-schemas schemas; \
 	gnome-extensions pack --force --podir=locale \
 	                      --extra-source=icons/; \
 	mv $(EXTENSION_DIR).shell-extension.zip ../$(BUNDLE_PATH)
