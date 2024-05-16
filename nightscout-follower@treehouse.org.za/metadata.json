@@ -1,0 +1,10 @@
+{
+  "name": "Nightscout Follower",
+  "description": "Display blood glucose data from Nightscout",
+  "uuid": "nightscout-follower@treehouse.org.za",
+  "settings-schema": "org.gnome.shell.extensions.nightscout-follower",
+  "gettext-domain": "gnome-shell-extension-nightscout-follower",
+  "shell-version": [
+    "46"
+  ]
+}

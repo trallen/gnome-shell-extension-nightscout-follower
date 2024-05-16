@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.nightscout-follower" path="/org/gnome/shell/extensions/nightscout-follower/">
+    <key name="url" type="s">
+        <default>"https://API_SECRET@sitename.yourprovider.com"</default>
+        <summary>Nightscout URL</summary>
+        <description>URL of Nightscout instance (of the form https://API_SECRET@sitename.yourprovider.com)</description>
+    </key>
+    <key name="units" type="s">
+        <default>"mg/dL"</default>
+        <summary>Measurement units</summary>
+        <description>Blood glucose measurement units, either mg/dL or mmol/L</description>
+    </key>
+  </schema>
+</schemalist>
