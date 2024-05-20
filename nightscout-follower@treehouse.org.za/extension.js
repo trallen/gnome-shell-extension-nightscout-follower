@@ -121,9 +121,15 @@ export default class NightscoutExtension extends Extension {
             let displayGlucoseValue = glucoseValue;
             let displayDelta = delta;
             if (units === 'mmol/L') {
-                displayGlucoseValue /= 18.018;
+                // Based on the molar mass of glucose, conversion
+                // is 18.0156 (older value sometimes used is 18.0182)
+                //
+                // https://pubchem.ncbi.nlm.nih.gov/compound/glucose
+                //displayGlucoseValue /= 18.0182;
+                displayGlucoseValue /= 18.0156;
                 displayGlucoseValue = displayGlucoseValue.toFixed(1);
-                displayDelta /= 18.018;
+                //displayDelta /= 18.0182;
+                displayDelta /= 18.0156;
                 displayDelta = displayDelta.toFixed(2);
             }
 
