@@ -19,6 +19,16 @@ export default class NightscoutPreferences extends ExtensionPreferences {
         page.add(group);
 
 
+        const update_row = new Adw.SwitchRow({
+            title: _('Connect to Nightscout'),
+            subtitle: _('Update current data from Nightscout'),
+        });
+        group.add(update_row);
+
+        window._settings.bind('update-data', update_row, 'active',
+            Gio.SettingsBindFlags.DEFAULT);
+
+
         const url_row = new Adw.EntryRow({
             title: _('Nightscout URL'),
         });
@@ -26,8 +36,6 @@ export default class NightscoutPreferences extends ExtensionPreferences {
         url_row.set_show_apply_button(true);
         group.add(url_row);
 
-        //window._settings.bind('url', url_row, 'text',
-        //    Gio.SettingsBindFlags.DEFAULT);
         url_row.set_text(window._settings.get_string('url'));
         url_row.connect('apply', () => {
             window._settings.set_string('url', url_row.text);

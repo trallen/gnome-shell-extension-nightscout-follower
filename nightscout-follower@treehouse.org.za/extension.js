@@ -36,6 +36,7 @@ export default class NightscoutExtension extends Extension {
         this._httpSession = new Soup.Session();
         this._indicator = new PanelMenu.Button(0.0, this.metadata.name, false);
         this._systemSource = MessageTray.getSystemSource();
+        this._active = this._settings.get_boolean('update-data');
 
         this._label = new St.Label({
             text: "Loading...",
@@ -44,8 +45,8 @@ export default class NightscoutExtension extends Extension {
         });
         this._indicator.add_child(this._label);
 
-        //this._indicator.menu.addAction(_('Preferences'),
-        //    () => this.openPreferences());
+        this._indicator.menu.addAction(_('Preferences'),
+            () => this.openPreferences());
 
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
@@ -61,6 +62,9 @@ export default class NightscoutExtension extends Extension {
             return GLib.SOURCE_CONTINUE;
         });
 
+        this._settings.connect('changed::update-data', (settings, key) => {
+            this._active = settings.get_boolean(key);
+        });
         this._settings.connect('changed::url', () => {
             this._update();
         });
@@ -85,6 +89,11 @@ export default class NightscoutExtension extends Extension {
     };
 
     _update() {
+        if (!this._active) {
+            this._label.set_text("Disabled");
+            return;
+        }
+
         //console.log("nightscout-follower: updating...")
         // Watch for changes to a specific setting
         this._fetch((status, data) => {

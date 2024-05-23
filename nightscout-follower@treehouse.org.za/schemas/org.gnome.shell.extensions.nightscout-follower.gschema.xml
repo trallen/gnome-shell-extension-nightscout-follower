@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.nightscout-follower" path="/org/gnome/shell/extensions/nightscout-follower/">
+    <key name="update-data" type="b">
+        <default>false</default>
+        <summary>Connect to Nightscout</summary>
+        <description>Update current data</description>
+    </key>
     <key name="url" type="s">
         <default>"https://API_SECRET@sitename.yourprovider.com"</default>
         <summary>Nightscout URL</summary>
